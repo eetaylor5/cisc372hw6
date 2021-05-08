@@ -1,3 +1,12 @@
+/*
+This code is modified for the CISC372 Homework 6 by
+Jackson Burns and Emily Taylor.
+
+
+*/
+
+
+
 //Simple optimized box blur
 //by: Greg Silber
 //Date: 5/1/2021
