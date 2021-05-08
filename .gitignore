@@ -2,3 +2,4 @@ obj/*
 *.o
 cu-fastblur
 fastblur
+cudablur
