@@ -1,9 +1,9 @@
 CFLAGS=
-cu-fastblur: obj/cu-fastblur.o
-	nvcc $(CFLAGS) obj/cu-fastblur.o -o cu-fastblur -lm
+cudablur: obj/cudablur.o
+	nvcc $(CFLAGS) obj/cudablur.o -o cudablur -lm
 
-obj/cu-fastblur.o: cu-fastblur.cu
-	nvcc -c $(CFLAGS) cu-fastblur.cu -o obj/fastblur.o
+obj/cudablur.o: cudablur.cu
+	nvcc -c $(CFLAGS) cudablur.cu -o obj/fastblur.o
 
 fastblur: obj/fastblur.o
 	gcc $(CFLAGS) obj/fastblur.o -o fastblur -lm
