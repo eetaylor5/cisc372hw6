@@ -34,8 +34,11 @@ Jackson Burns and Emily Taylor.
 //            rad: the width of the blur
 //            bpp: The bits per pixel in the src image
 //Returns: None
-__global__ void computeRow(float* src,float* dest,int pWidth,int radius,int bpp){
+__global__ void computeRow(float* src,float* dest,int pWidth,int height,int radius,int bpp){
     int row = blockIdx.x * blockDim.x + threadIdx.x;
+    if(row>height){
+        return;
+    }
     int i;
     int bradius=radius*bpp;
     //initialize the first bpp elements so that nothing fails
@@ -58,7 +61,7 @@ __global__ void computeRow(float* src,float* dest,int pWidth,int radius,int bpp)
 }
 
 //Computes a single column of the destination image by summing radius pixels
-//Parameters: src: Teh src image as width*height*bpp 1d array
+//Parameters: src: The src image as width*height*bpp 1d array
 //            dest: pre-allocated array of size width*height*bpp to receive summed row
 //            col: The current column number
 //            pWidth: The width of the image * the bpp (i.e. number of bytes in a row)
@@ -68,6 +71,9 @@ __global__ void computeRow(float* src,float* dest,int pWidth,int radius,int bpp)
 //Returns: None
 __global__ void computeColumn(uint8_t* src,float* dest,int pWidth,int height,int radius,int bpp){
     int col = blockIdx.y * blockDim.y + threadIdx.y;
+    if(col>pWidth){
+        return;
+    }
     int i;
     //initialize the first element of each column
     dest[col]=src[col];
@@ -119,7 +125,7 @@ int main(int argc,char** argv){
     t1=time(NULL);
     computeColumn<<<(width+255)/256, 256>>>(img,mid,pWidth,height,radius,bpp);
     cudaDeviceSynchronize();
-    computeRow<<<(height+255)/256, 256>>>(mid,dest,pWidth,radius,bpp);
+    computeRow<<<(height+255)/256, 256>>>(mid,dest,pWidth,height,radius,bpp);
     cudaDeviceSynchronize();
     t2=time(NULL);
     stbi_image_free(img);
@@ -130,7 +136,7 @@ int main(int argc,char** argv){
         img[i]=(uint8_t)dest[i];
     }
     cudaFree(dest);
-    stbi_write_png("output.png",width,height,bpp,img,bpp*width);
+    stbi_write_png("output.png",width,height,bpp,img,pWidth);
     free(img);
     printf("Blur with radius %d complete in %ld seconds\n",radius,t2-t1);
 }
