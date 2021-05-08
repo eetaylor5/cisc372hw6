@@ -113,10 +113,9 @@ int main(int argc,char** argv){
     img=stbi_load(filename,&width,&height,&bpp,0);
 
     pWidth=width*bpp;  //actual width in bytes of an image row
-
+    
     cudaMallocManaged(&mid, sizeof(float)*pWidth*height);   
-    cudaMallocManaged(&dest, sizeof(float)*pWidth*height);   
-
+    cudaMallocManaged(&dest, sizeof(float)*pWidth*height);
     t1=time(NULL);
     computeColumn<<<(width+255)/256, 256>>>(img,mid,pWidth,height,radius,bpp);
     cudaDeviceSynchronize();
@@ -125,7 +124,6 @@ int main(int argc,char** argv){
     t2=time(NULL);
     stbi_image_free(img);
     cudaFree(mid);
-
     //now back to int8 so we can save it
     img=(uint8_t *) malloc(sizeof(uint8_t)*pWidth*height);
     for (i=0;i<pWidth*height;i++){
