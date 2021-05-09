@@ -28,6 +28,8 @@ Jackson Burns and Emily Taylor.
 
 #include <cuda.h>
 
+#define BLOCK_SIZE 256
+
 //Computes a single row of the destination image by summing radius pixels
 //Parameters: src: Teh src image as width*height*bpp 1d array
 //            dest: pre-allocated array of size width*height*bpp to receive summed row
@@ -130,10 +132,10 @@ int main(int argc,char** argv){
     cudaMallocManaged(&dest, sizeof(float)*pWidth*height);
     
     t1=time(NULL);
-    computeColumn<<<(pWidth+255)/256, 256>>>(GPUimg,mid,pWidth,height,radius,bpp);
+    computeColumn<<<(pWidth+BLOCK_SIZE-1)/BLOCK_SIZE, BLOCK_SIZE>>>(GPUimg,mid,pWidth,height,radius,bpp);
     cudaDeviceSynchronize();
     
-    computeRow<<<(height+255)/256, 256>>>(mid,dest,pWidth,height,radius,bpp);
+    computeRow<<<(height+BLOCK_SIZE-1)/BLOCK_SIZE, BLOCK_SIZE>>>(mid,dest,pWidth,height,radius,bpp);
     cudaDeviceSynchronize();
     
     t2=time(NULL);
