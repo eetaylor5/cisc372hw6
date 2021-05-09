@@ -14,6 +14,8 @@ Jackson Burns and Emily Taylor.
 //it does this by computing a running sum for each column within the radius, then averaging that sum.  Then the same for 
 //each row.  This should allow it to be easily parallelized by column then by row, since each call is independent.
 
+#include <cuda_runtime.h>
+#include <driver_types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -70,7 +72,7 @@ __global__ void computeRow(float* src,float* dest,int pWidth,int height,int radi
 //            bpp: The bits per pixel in the src image
 //Returns: None
 __global__ void computeColumn(uint8_t* src,float* dest,int pWidth,int height,int radius,int bpp){
-    int col = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
     if(col>pWidth){
         return;
     }
@@ -118,12 +120,16 @@ int main(int argc,char** argv){
    
     img=stbi_load(filename,&width,&height,&bpp,0);
 
+    uint8_t *GPUimg;
+    cudaMalloc(&GPUimg, sizeof(img));
+    cudaMemcpy(GPUimg,  img, sizeof(img), cudaMemcpyHostToDevice);
+
     pWidth=width*bpp;  //actual width in bytes of an image row
     
-    cudaMallocManaged(&mid, sizeof(float)*pWidth*height);   
+    cudaMalloc(&mid, sizeof(float)*pWidth*height);   
     cudaMallocManaged(&dest, sizeof(float)*pWidth*height);
     t1=time(NULL);
-    computeColumn<<<(width+255)/256, 256>>>(img,mid,pWidth,height,radius,bpp);
+    computeColumn<<<(width+255)/256, 256>>>(GPUimg,mid,pWidth,height,radius,bpp);
     cudaDeviceSynchronize();
     computeRow<<<(height+255)/256, 256>>>(mid,dest,pWidth,height,radius,bpp);
     cudaDeviceSynchronize();
