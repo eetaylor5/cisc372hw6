@@ -28,6 +28,8 @@ Jackson Burns and Emily Taylor.
 
 #define BLOCK_SIZE 256
 
+#include <sys/time.h>
+
 //Computes a single row of the destination image by summing radius pixels
 //Parameters: src: Teh src image as width*height*bpp 1d array
 //            dest: pre-allocated array of size width*height*bpp to receive summed row
@@ -105,13 +107,17 @@ int Usage(char* name){
 }
 
 int main(int argc,char** argv){
-    long t1,t2;
     int radius=0;
     int i;
     int width,height,bpp,pWidth;
     char* filename;
     uint8_t *img;
-    float* dest,*mid;
+
+    // add a new array for a copy of the final img on the host
+    float* dest,*mid,*CPUdest;
+
+    // need smaller time increments for this fast process
+    struct timeval stop, start;
 
     if (argc!=3)
         return Usage(argv[0]);
@@ -122,43 +128,41 @@ int main(int argc,char** argv){
 
     pWidth=width*bpp;  //actual width in bytes of an image row
 
-    // make a copy of the input image on the GPU
     uint8_t *GPUimg;
     cudaMalloc(&GPUimg, sizeof(uint8_t)*pWidth*height);
     cudaMemcpy(GPUimg,  img, sizeof(uint8_t)*pWidth*height, cudaMemcpyHostToDevice);
     
-    // allocate space for mid on the gpu
     cudaMalloc(&mid, sizeof(float)*pWidth*height);
 
-    // use managed memory for the destination matrix so that it can be accessed from host and device
-    cudaMallocManaged(&dest, sizeof(float)*pWidth*height);
+    // malloc space on the device only
+    cudaMalloc(&dest, sizeof(float)*pWidth*height);
     
-    t1=time(NULL);
-
-    // call compute column with the BLOCK_SIZE determining the number of blocks and threads. Make sure to
-    // pass image arrays that the device has access to.
+    gettimeofday(&start, NULL);
     computeColumn<<<(pWidth+BLOCK_SIZE-1)/BLOCK_SIZE, BLOCK_SIZE>>>(GPUimg,mid,pWidth,height,radius,bpp);
-
-    // wait for all threads to finish
     cudaDeviceSynchronize();
     
     computeRow<<<(height+BLOCK_SIZE-1)/BLOCK_SIZE, BLOCK_SIZE>>>(mid,dest,pWidth,height,radius,bpp);
     cudaDeviceSynchronize();
     
-    t2=time(NULL);
+    gettimeofday(&stop, NULL);
     
+    // copy the final image from the device to the host
+    CPUdest = (float *) malloc(sizeof(float)*pWidth*height);
+    cudaMemcpy(CPUdest, dest, sizeof(float)*pWidth*height, cudaMemcpyDeviceToHost);
+
     //now back to int8 so we can save it
     for (i=0;i<pWidth*height;i++){
-        img[i]=(uint8_t)dest[i];
+        img[i]=(uint8_t)CPUdest[i];
     }
     
     stbi_write_png("output.png",width,height,bpp,img,pWidth);
-
-    // free all the memory
     stbi_image_free(img);
     cudaFree(GPUimg);
     cudaFree(dest);
     cudaFree(mid);
+
+    // one additional free
+    free(CPUdest);
     
-    printf("Blur with radius %d complete in %ld seconds\n",radius,t2-t1);
+    printf("Blur with radius %d took %lu us\n", radius, (stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
 }

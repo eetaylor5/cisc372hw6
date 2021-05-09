@@ -4,3 +4,4 @@ fastblur
 cudablur
 .vscode/*
 cudablur-debug
+fastcudablur
