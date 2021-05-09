@@ -108,7 +108,7 @@ int main(int argc,char** argv){
     for (i=0;i<pWidth;i++){
          computeColumn(img,mid,i,pWidth,height,radius,bpp);
     }  
-    stbi_image_free(img); //done with image
+    // stbi_image_free(img); //done with image
     for (i=0;i<height;i++){
         computeRow(mid,dest,i,pWidth,radius,bpp);
     }
@@ -116,12 +116,12 @@ int main(int argc,char** argv){
     free(mid); //done with mid
 
     //now back to int8 so we can save it
-    img=malloc(sizeof(uint8_t)*pWidth*height);
+    // img=malloc(sizeof(uint8_t)*pWidth*height);
     for (i=0;i<pWidth*height;i++){
         img[i]=(uint8_t)dest[i];
     }
     free(dest);   
     stbi_write_png("output.png",width,height,bpp,img,bpp*width);
-    free(img);
+    stbi_image_free(img);
     printf("Blur with radius %d complete in %ld seconds\n",radius,t2-t1);
 }

@@ -16,4 +16,4 @@ test: cudablur
 	./cudablur gauss.jpg 50
 
 clean:
-	rm -f obj/* fastblur output.png
+	rm -f obj/* fastblur cudablur output.png

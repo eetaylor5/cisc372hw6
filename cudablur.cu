@@ -38,7 +38,7 @@ Jackson Burns and Emily Taylor.
 //Returns: None
 __global__ void computeRow(float* src,float* dest,int pWidth,int height,int radius,int bpp){
     int row = blockIdx.x * blockDim.x + threadIdx.x;
-    if(row>height){
+    if(row>=height){
         return;
     }
     int i;
@@ -73,7 +73,7 @@ __global__ void computeRow(float* src,float* dest,int pWidth,int height,int radi
 //Returns: None
 __global__ void computeColumn(uint8_t* src,float* dest,int pWidth,int height,int radius,int bpp){
     int col = blockIdx.x * blockDim.x + threadIdx.x;
-    if(col>pWidth){
+    if(col>=pWidth){
         return;
     }
     int i;
@@ -130,23 +130,21 @@ int main(int argc,char** argv){
     cudaMallocManaged(&dest, sizeof(float)*pWidth*height);
     
     t1=time(NULL);
-    computeColumn<<<(width+255)/256, 256>>>(GPUimg,mid,pWidth,height,radius,bpp);
+    computeColumn<<<(pWidth+255)/256, 256>>>(GPUimg,mid,pWidth,height,radius,bpp);
     cudaDeviceSynchronize();
     
     computeRow<<<(height+255)/256, 256>>>(mid,dest,pWidth,height,radius,bpp);
     cudaDeviceSynchronize();
     
     t2=time(NULL);
-    stbi_image_free(img);
     
     //now back to int8 so we can save it
-    img=(uint8_t *) malloc(sizeof(uint8_t)*pWidth*height);
     for (i=0;i<pWidth*height;i++){
         img[i]=(uint8_t)dest[i];
     }
     
     stbi_write_png("output.png",width,height,bpp,img,pWidth);
-    free(img);
+    stbi_image_free(img);
     cudaFree(GPUimg);
     cudaFree(dest);
     cudaFree(mid);
