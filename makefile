@@ -12,6 +12,8 @@ fastblur: obj/fastblur.o
 obj/fastblur.o: fastblur.c
 	gcc -c $(CFLAGS) fastblur.c -o obj/fastblur.o 
 
+test: cudablur
+	./cudablur gauss.jpg 50
 
 clean:
 	rm -f obj/* fastblur output.png
