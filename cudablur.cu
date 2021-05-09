@@ -120,14 +120,15 @@ int main(int argc,char** argv){
    
     img=stbi_load(filename,&width,&height,&bpp,0);
 
-    uint8_t *GPUimg;
-    cudaMalloc(&GPUimg, sizeof(img));
-    cudaMemcpy(GPUimg,  img, sizeof(img), cudaMemcpyHostToDevice);
-
     pWidth=width*bpp;  //actual width in bytes of an image row
-    
+
+    uint8_t *GPUimg;
+    cudaMalloc(&GPUimg, sizeof(float)*pWidth*height);
+    cudaMemcpy(GPUimg,  img, sizeof(float)*pWidth*height, cudaMemcpyHostToDevice);
+
     cudaMalloc(&mid, sizeof(float)*pWidth*height);   
     cudaMallocManaged(&dest, sizeof(float)*pWidth*height);
+
     t1=time(NULL);
     computeColumn<<<(width+255)/256, 256>>>(GPUimg,mid,pWidth,height,radius,bpp);
     cudaDeviceSynchronize();
@@ -135,15 +136,15 @@ int main(int argc,char** argv){
     cudaDeviceSynchronize();
     t2=time(NULL);
     stbi_image_free(img);
-    cudaFree(mid);
     //now back to int8 so we can save it
     img=(uint8_t *) malloc(sizeof(uint8_t)*pWidth*height);
     for (i=0;i<pWidth*height;i++){
         img[i]=(uint8_t)dest[i];
     }
-    cudaFree(dest);
     stbi_write_png("output.png",width,height,bpp,img,pWidth);
     free(img);
     cudaFree(GPUimg);
+    cudaFree(dest);
+    cudaFree(mid);
     printf("Blur with radius %d complete in %ld seconds\n",radius,t2-t1);
 }
