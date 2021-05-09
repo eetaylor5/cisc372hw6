@@ -144,5 +144,6 @@ int main(int argc,char** argv){
     cudaFree(dest);
     stbi_write_png("output.png",width,height,bpp,img,pWidth);
     free(img);
+    cudaFree(GPUimg);
     printf("Blur with radius %d complete in %ld seconds\n",radius,t2-t1);
 }
